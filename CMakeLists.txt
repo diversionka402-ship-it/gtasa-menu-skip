@@ -26,6 +26,7 @@ add_library(MenuSkip SHARED
   src/dllmain.cpp
   src/hooks.cpp
   src/menu.cpp
+  src/game.cpp
 
   ${imgui_SOURCE_DIR}/imgui.cpp
   ${imgui_SOURCE_DIR}/imgui_draw.cpp
