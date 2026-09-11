@@ -1,5 +1,6 @@
 #include <windows.h>
 #include <cstdio>
+#pragma comment(lib, "user32.lib")
 
 volatile int* gGameState = reinterpret_cast<volatile int*>(0xC8D4C0);
 
