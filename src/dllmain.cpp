@@ -4,42 +4,46 @@
 
 volatile int* gGameState = reinterpret_cast<volatile int*>(0xC8D4C0);
 
-void PressEnter() {
+void PressKey(WORD vk) {
     INPUT input[2] = {};
 
     input[0].type = INPUT_KEYBOARD;
-    input[0].ki.wVk = VK_RETURN;
+    input[0].ki.wVk = vk;
 
     input[1].type = INPUT_KEYBOARD;
-    input[1].ki.wVk = VK_RETURN;
+    input[1].ki.wVk = vk;
     input[1].ki.dwFlags = KEYEVENTF_KEYUP;
 
-    SendInput(1, &input[0], sizeof(INPUT)); // key down
+    SendInput(1, &input[0], sizeof(INPUT));
     Sleep(80);
-    SendInput(1, &input[1], sizeof(INPUT)); // key up
+    SendInput(1, &input[1], sizeof(INPUT));
 }
 
 DWORD WINAPI SkipMenuThread(LPVOID) {
     FILE* f = fopen("MenuSkip.log", "w");
     if (f) { fprintf(f, "SkipMenuThread started\n"); fflush(f); }
 
-    Sleep(5000); // ждём, пока догрузится главное меню (state 7)
+    Sleep(5000); // ждём главное меню (state 7)
 
-    if (f) { fprintf(f, "[t=5000] Pressing Enter (Start Game)\n"); fflush(f); }
-    PressEnter();
+    if (f) { fprintf(f, "[t=5000] Pressing Up (Options -> Start Game)\n"); fflush(f); }
+    PressKey(VK_UP);
 
-    Sleep(1500); // ждём, пока откроется подменю Game
+    Sleep(500);
 
-    if (f) { fprintf(f, "[t=6500] Pressing Enter (New Game)\n"); fflush(f); }
-    PressEnter();
+    if (f) { fprintf(f, "[t=5500] Pressing Enter (Start Game)\n"); fflush(f); }
+    PressKey(VK_RETURN);
 
-    // логируем состояние ещё 20 секунд, чтобы убедиться что дошли до игры
+    Sleep(1500); // ждём подменю Game
+
+    if (f) { fprintf(f, "[t=7000] Pressing Enter (New Game)\n"); fflush(f); }
+    PressKey(VK_RETURN);
+
     int lastValue = -999999;
     for (int i = 0; i < 200; i++) {
         __try {
             int current = *gGameState;
             if (current != lastValue) {
-                if (f) { fprintf(f, "[t=%d ms] gGameState: %d -> %d\n", 6500 + i * 100, lastValue, current); fflush(f); }
+                if (f) { fprintf(f, "[t=%d ms] gGameState: %d -> %d\n", 7000 + i * 100, lastValue, current); fflush(f); }
                 lastValue = current;
             }
         }
