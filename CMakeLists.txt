@@ -45,7 +45,6 @@ target_include_directories(MenuSkip PRIVATE
 target_link_libraries(MenuSkip PRIVATE
   minhook
   d3d9
-  d3dx9
 )
 
 set_target_properties(MenuSkip PROPERTIES
