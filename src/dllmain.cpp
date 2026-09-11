@@ -26,7 +26,7 @@ void PressEnter() {
     SendInput(1, &input[1], sizeof(INPUT));
 }
 
-// Ждёт нужную страницу меню (максимум ~15 сек), возвращает true если дождались
+// Ждёт нужную страницу меню (максимум timeoutMs), возвращает true если дождались
 bool WaitForMenuPage(char targetPage, int timeoutMs) {
     for (int waited = 0; waited < timeoutMs; waited += 10) {
         __try {
@@ -45,6 +45,7 @@ DWORD WINAPI SkipMenuThread(LPVOID) {
     g_log = fopen("MenuSkip.log", "w");
     Log("SkipMenuThread started");
 
+    // --- Экран 1: Main Menu -> Start Game ---
     if (!WaitForMenuPage(MENUPAGE_MAIN_MENU, 15000)) {
         Log("Timeout waiting for Main Menu page (34). Aborting skip.");
         if (g_log) fclose(g_log);
@@ -57,33 +58,43 @@ DWORD WINAPI SkipMenuThread(LPVOID) {
 
     PressEnter();
 
+    // --- Экран 2: Game submenu -> New Game ---
     if (!WaitForMenuPage(MENUPAGE_NEW_GAME, 5000)) {
         Log("Timeout waiting for Game submenu page (1). Aborting skip.");
         if (g_log) fclose(g_log);
         return 0;
     }
-    Log("Game submenu detected. Forcing entry 0 (New Game) + Enter.");
+    Log("Game submenu detected.");
 
-    __try { *g_currentMenuEntry = 0; }
-    __except (EXCEPTION_EXECUTE_HANDLER) { Log("CRASH writing menu entry (page 2)"); }
+    Sleep(300); // даём анимации подменю доиграть
 
-    PressEnter();
+    int baseline = -999999;
+    __try { baseline = *gGameState; }
+    __except (EXCEPTION_EXECUTE_HANDLER) {}
 
-    // логируем переход состояния для подтверждения
-    int lastValue = -999999;
-    for (int i = 0; i < 200; i++) {
+    char buf[96];
+    sprintf(buf, "Baseline gGameState: %d", baseline);
+    Log(buf);
+
+    bool triggered = false;
+    for (int attempt = 1; attempt <= 8 && !triggered; attempt++) {
+        __try { *g_currentMenuEntry = 0; }
+        __except (EXCEPTION_EXECUTE_HANDLER) { Log("CRASH writing menu entry"); }
+
+        PressEnter();
+        Sleep(250);
+
         __try {
-            int current = *gGameState;
-            if (current != lastValue) {
-                char buf[64];
-                sprintf(buf, "gGameState: %d -> %d", lastValue, current);
+            if (*gGameState != baseline) {
+                sprintf(buf, "Attempt %d worked, gGameState now %d", attempt, *gGameState);
                 Log(buf);
-                lastValue = current;
+                triggered = true;
             }
         }
         __except (EXCEPTION_EXECUTE_HANDLER) { Log("CRASH reading gGameState"); break; }
-        Sleep(50);
     }
+
+    if (!triggered) Log("New Game never triggered after 8 attempts.");
 
     Log("Done.");
     if (g_log) fclose(g_log);
