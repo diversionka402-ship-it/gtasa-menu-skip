@@ -12,16 +12,14 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v4
 
-      - name: Setup MSVC (x86)
-        uses: ilammy/msvc-dev-cmd@v1
-        with:
-          arch: x86
+      - name: Configure CMake
+        run: cmake -B build -A Win32
 
-      - name: Compile MenuSkip.asi
-        run: cl /LD /EHsc src\dllmain.cpp /Fe:MenuSkip.asi
+      - name: Build
+        run: cmake --build build --config Release
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: MenuSkip
-          path: MenuSkip.asi
+          path: build/Release/MenuSkip.asi
